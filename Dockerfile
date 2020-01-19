@@ -1,33 +1,22 @@
-FROM alpine:3.6
+FROM php:7.2.15-fpm-alpine3.9
 LABEL Maintainer="Matias Flores <matius77@gmail.com>" \
-      Description="Contenedor con Nginx & PHP-FPM 7.1 basado en Linux Alpine."
+      Description="Contenedor con Nginx 1.12 & PHP-FPM 7.2.15 basado en Linux Alpine 3.9."
 
-# Install packages
-RUN apk --no-cache add php7 \
-	php7-fpm \
-	php7-pdo \
-	php7-pdo_mysql \
-	php7-intl \
-	php7-xml \
-	php7-xmlwriter \
-	php7-xmlreader \
-	php7-common \
-	php7-tokenizer \
-	php7-json \
-	php7-openssl \
-	php7-curl \
-    	php7-zlib \
-	php7-phar \
-	php7-dom \
-	php7-ctype \
-	php7-mcrypt \
-    	php7-mbstring \
-	php7-fileinfo \
-	php7-gd \
-	php7-pcntl \
-	php7-posix \
-	php7-session \
-	php7-iconv \
+# iconv & gd
+RUN apk --no-cache add \
+        freetype-dev \
+        libjpeg-turbo-dev \
+ 	libpng-dev \
+        libmcrypt-dev \
+  && docker-php-ext-install -j$(nproc) iconv \
+  && docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ --with-png-dir=/usr/include/ \
+  && docker-php-ext-install -j$(nproc) gd 
+
+# Dependencias PHP 
+RUN docker-php-ext-install bcmath mbstring mysqli pdo pdo_mysql
+
+# Otros Packages
+RUN apk --no-cache add \
 	nginx \
 	supervisor \
 	curl \
@@ -35,7 +24,9 @@ RUN apk --no-cache add php7 \
 	wget \
 	git
 
-# Install Composer
+# Composer
 RUN curl -sS https://getcomposer.org/installer | php -- \
         --install-dir=/usr/local/bin \
         --filename=composer
+
+RUN composer --version
