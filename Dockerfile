@@ -36,6 +36,7 @@ RUN curl -sS https://getcomposer.org/installer | php -- \
 
 # Driver sqlsrv
 RUN set -xe \
+    && apk add --no-cache libstdc++  \
     && apk add --no-cache --virtual .persistent-deps freetds unixodbc \
     && apk add --no-cache --virtual .build-deps $PHPIZE_DEPS unixodbc-dev freetds-dev \
     && docker-php-source extract \
