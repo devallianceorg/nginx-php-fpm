@@ -34,6 +34,21 @@ RUN curl -sS https://getcomposer.org/installer | php -- \
         --install-dir=/usr/local/bin \
         --filename=composer
 
+# Driver ODBC
+RUN set -ex; \
+	docker-php-source extract; \
+	{ \
+		echo '# https://github.com/docker-library/php/issues/103#issuecomment-271413933'; \
+		echo 'AC_DEFUN([PHP_ALWAYS_SHARED],[])dnl'; \
+		echo; \
+		cat /usr/src/php/ext/odbc/config.m4; \
+	} > temp.m4; \
+	mv temp.m4 /usr/src/php/ext/odbc/config.m4; \
+	apk add --no-cache unixodbc-dev; \
+	docker-php-ext-configure odbc --with-unixODBC=shared,/usr; \
+	docker-php-ext-install odbc; \
+	docker-php-source delete
+
 # Driver sqlsrv
 RUN set -xe \
     && apk add --no-cache libstdc++  \
@@ -46,3 +61,7 @@ RUN set -xe \
     && docker-php-ext-enable --ini-name 35-pdo_sqlsrv.ini pdo_sqlsrv \
     && docker-php-source delete \
     && apk del .build-deps
+
+
+
+
