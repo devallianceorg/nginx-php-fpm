@@ -1,11 +1,42 @@
-FROM microsoft/mssql-tools as mssql
+#FROM microsoft/mssql-tools as mssql
 FROM php:7.2-fpm-alpine
 LABEL Maintainer="Matias Flores <matius77@gmail.com>" \
       Description="Contenedor con Nginx & PHP-FPM 7.2 basado en Linux Alpine"
 
-COPY --from=mssql /opt/microsoft/ /opt/microsoft/
-COPY --from=mssql /opt/mssql-tools/ /opt/mssql-tools/
-COPY --from=mssql /usr/lib/libmsodbcsql-13.so /usr/lib/libmsodbcsql-13.so
+#COPY --from=mssql /opt/microsoft/ /opt/microsoft/
+#COPY --from=mssql /opt/mssql-tools/ /opt/mssql-tools/
+#COPY --from=mssql /usr/lib/libmsodbcsql-13.so /usr/lib/libmsodbcsql-13.so
+
+ENV devbuild=odbc
+
+# Otros Packages
+RUN apk --no-cache add \
+	nginx \
+	supervisor \
+	curl \
+	openssl \
+	wget \
+	git \
+	gnupg
+
+
+# Driver ODBC ------------------------------------------------
+#Download the desired package(s)
+RUN curl -O https://download.microsoft.com/download/e/4/e/e4e67866-dffd-428c-aac7-8d28ddafb39b/msodbcsql17_17.5.2.2-1_amd64.apk
+RUN curl -O https://download.microsoft.com/download/e/4/e/e4e67866-dffd-428c-aac7-8d28ddafb39b/mssql-tools_17.5.2.1-1_amd64.apk
+
+#(Optional) Verify signature, if 'gpg' is missing install it using 'apk add gnupg':
+RUN curl -O https://download.microsoft.com/download/e/4/e/e4e67866-dffd-428c-aac7-8d28ddafb39b/msodbcsql17_17.5.2.2-1_amd64.sig
+RUN curl -O https://download.microsoft.com/download/e/4/e/e4e67866-dffd-428c-aac7-8d28ddafb39b/mssql-tools_17.5.2.1-1_amd64.sig
+
+RUN curl https://packages.microsoft.com/keys/microsoft.asc | gpg --import -
+RUN gpg --verify msodbcsql17_17.5.2.2-1_amd64.sig msodbcsql17_17.5.2.2-1_amd64.apk
+RUN gpg --verify mssql-tools_17.5.2.1-1_amd64.sig mssql-tools_17.5.2.1-1_amd64.apk
+
+#Install the package(s)
+RUN apk add --allow-untrusted msodbcsql17_17.5.2.2-1_amd64.apk
+RUN apk add --allow-untrusted mssql-tools_17.5.2.1-1_amd64.apk
+# End Driver ODBC ------------------------------------------------
 
 # iconv & gd
 RUN apk --no-cache add \
@@ -20,34 +51,10 @@ RUN apk --no-cache add \
 # Dependencias PHP 
 RUN docker-php-ext-install bcmath mbstring mysqli pdo pdo_mysql
 
-# Otros Packages
-RUN apk --no-cache add \
-	nginx \
-	supervisor \
-	curl \
-	openssl \
-	wget \
-	git
-
 # Composer
 RUN curl -sS https://getcomposer.org/installer | php -- \
         --install-dir=/usr/local/bin \
         --filename=composer
-
-# Driver ODBC
-RUN set -ex; \
-	docker-php-source extract; \
-	{ \
-		echo '# https://github.com/docker-library/php/issues/103#issuecomment-271413933'; \
-		echo 'AC_DEFUN([PHP_ALWAYS_SHARED],[])dnl'; \
-		echo; \
-		cat /usr/src/php/ext/odbc/config.m4; \
-	} > temp.m4; \
-	mv temp.m4 /usr/src/php/ext/odbc/config.m4; \
-	apk add --no-cache unixodbc-dev; \
-	docker-php-ext-configure odbc --with-unixODBC=shared,/usr; \
-	docker-php-ext-install odbc; \
-	docker-php-source delete
 
 # Driver sqlsrv
 RUN set -xe \
