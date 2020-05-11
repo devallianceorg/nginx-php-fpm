@@ -7,7 +7,11 @@ LABEL Maintainer="Matias Flores <matius77@gmail.com>" \
 #COPY --from=mssql /opt/mssql-tools/ /opt/mssql-tools/
 #COPY --from=mssql /usr/lib/libmsodbcsql-13.so /usr/lib/libmsodbcsql-13.so
 
-ENV devbuild=odbc
+ENV devbuild=soap
+
+# soap
+RUN apk add --update --no-cache libxml2-dev \
+    && docker-php-ext-install soap
 
 # Otros Packages
 RUN apk --no-cache add \
